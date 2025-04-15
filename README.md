@@ -1,5 +1,15 @@
 # ShopSmart.AI - Intelligent Shopping Assistant with CrewAi
 
+Welcome to the `ShopSmart.AI` repository! This project is an Intelligent Shopping Assistant built using CrewAi, designed to enhance your shopping experience by providing smart recommendations and efficient assistance.
+
+## Features
+- **Smart Recommendations**: Get personalized shopping suggestions based on your preferences and past behavior.
+- **Agent-Based System**: Utilize CrewAi's intelligent agents to streamline your shopping journey.
+- **Interactive Interface**: User-friendly interface built with HTML for seamless navigation.
+- **Data Analysis**: Analyze shopping trends and preferences using Jupyter Notebooks.
+- **Backend Integration**: Python-powered backend for robust and scalable performance.
+
+
 ![Agentic Flow](flow.png)
 
 Welcome to the `ShopSmart.AI` repository! This project is an Intelligent Shopping Assistant built using CrewAi, designed to enhance your shopping experience by providing smart recommendations and efficient assistance.
@@ -44,16 +54,17 @@ This project is built using:
 ```
 .
 ├── agentic_flow.png      # Visual representation of the agentic flow in the system
-├── notebooks/            # Jupyter Notebooks for data analysis
-├── static/               # Static files (CSS, JavaScript, images)
-├── templates/            # HTML templates for the UI
+├── notebooks/            # Jupyter Notebooks for testing the agents and tasks
+├── agents.py
+├── tasks.py
+├── crew.py     
 ├── app.py                # Main application script
 ├── requirements.txt      # Dependencies
 └── README.md             # Project documentation
 ```
 
 ## Agentic Flow
-The image above (`agentic_flow.png`) illustrates the flow of agents in the system, showcasing how different agents collaborate to provide a seamless shopping experience.
+The image above (`flow.png`) illustrates the flow of agents in the system, showcasing how different agents collaborate to provide a seamless shopping experience.
 
 ## Contributions
 Contributions are welcome! Feel free to fork the repository, create a branch, and submit a pull request.
