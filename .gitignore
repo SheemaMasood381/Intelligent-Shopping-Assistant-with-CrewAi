@@ -1,0 +1,10 @@
+# Ignore .env file containing sensitive keys
+.env
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+
