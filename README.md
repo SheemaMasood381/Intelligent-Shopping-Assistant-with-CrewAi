@@ -1,6 +1,6 @@
 # ShopSmart.AI - Intelligent Shopping Assistant with CrewAi
 
-![Agentic Flow](agentic_flow.png)
+![Agentic Flow](agentic flow.png)
 
 Welcome to the `ShopSmart.AI` repository! This project is an Intelligent Shopping Assistant built using CrewAi, designed to enhance your shopping experience by providing smart recommendations and efficient assistance.
 
