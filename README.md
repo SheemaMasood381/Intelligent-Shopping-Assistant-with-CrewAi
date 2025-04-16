@@ -90,7 +90,7 @@ Navigate to [http://localhost:5000](http://localhost:5000) in your browser to in
 
 ## 🌐 Agentic Flow
 
-The flow diagram (`agentic_flow.png`) showcases how the agents collaborate to handle tasks like product search, comparison, review summarization, and recommendations.
+The flow diagram (`flow.png`) showcases how the agents collaborate to handle tasks like product search, comparison, review summarization, and recommendations.
 
 ---
 
