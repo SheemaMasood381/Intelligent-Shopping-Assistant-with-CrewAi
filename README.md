@@ -16,7 +16,7 @@ Welcome to the `ShopSmart.AI` repository! This project is an Intelligent Shoppin
 
 ## Tech Stack
 This project is built using:
-- **streamlit** (43.2%) for creating the interactive and responsive user interface.
+- **HTML** (43.2%) for creating the interactive and responsive user interface.
 - **Jupyter Notebook** (43.1%) for data analysis and visualization.
 - **Python** (13.7%) for backend logic and integration with CrewAi.
 
