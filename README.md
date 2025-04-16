@@ -52,7 +52,7 @@ This project is built using:
 ├── agents.py             # Framework file for defining intelligent agents
 ├── crew.py               # Core CrewAi framework integration
 ├── task.py               # Task management and orchestration
-├── notebooks/            # Jupyter Notebooks for testing 
+├── ShopSmartAssistant.ipynb   # Jupyter Notebooks for testing 
 ├── app.py                # Main application script
 ├── requirements.txt      # Dependencies
 └── README.md             # Project documentation
