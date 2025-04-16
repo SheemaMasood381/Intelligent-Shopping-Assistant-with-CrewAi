@@ -9,7 +9,7 @@ Welcome to the `ShopSmart.AI` repository! This project is an Intelligent Shoppin
 - **Interactive Interface**: User-friendly interface built with streamlit for seamless navigation.
 - **Data Analysis**: Analyze shopping trends and preferences using Jupyter Notebooks.
 - **Backend Integration**: Python-powered backend for robust and scalable performance.
-- **Enterprise Deployment**: Leverage CrewAi Enterprise Framework for deployment using the `agents.py`, `crew.py`, and `task.py` files.
+- **Enterprise Deployment**: Leverage CrewAi Enterprise Framework for deployment using the `agents.py`, `crew.py`, and `task.py` and 'Dockerfile' files.
 
 
 ![Agentic Flow](flow.png)
