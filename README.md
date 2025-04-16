@@ -16,18 +16,28 @@ Welcome to the **ShopSmart.AI** repository! This project is an **Intelligent Sho
 - **User-Friendly Interface**: Built with **Streamlit** for easy and intuitive navigation.
 
 ---
+## 🛠️ Technologies, Tools & Gen AI Capabilities Mapping (Updated)
 
-## ⚙️ Tech Stack
+| Tool / Library                 | Purpose                                                                 | Gen AI Capability Demonstrated                         |
+|-------------------------------|-------------------------------------------------------------------------|--------------------------------------------------------|
+| `CrewAI`                      | Manages agents and orchestrates multi-step processes                    | ✅ Multi-Agent Collaboration                           |
+| `SerperDevTool`               | Searches the web for product listings                                   | ✅ Information Retrieval for RAG                       |
+| `ScrapeWebsiteTool`           | Scrapes data from product listing websites                              | ✅ Data Collection for downstream processing           |
+| `WebsiteSearchTool + RAG`     | Retrieves and summarizes user reviews                                   | ✅ Retrieval-Augmented Generation (RAG)                |
+| `Google Gemini LLM`           | Provides reasoning, analysis, and natural language output               | ✅ Structured Output / JSON Mode<br>✅ Review Summarization |
+| `LiteLLM`                     | Runs Gemini LLMs efficiently                                            | ✅ Efficient LLM Inference                             |
+| `Google Embeddings`           | Used for document retrieval in RAG setup                                | ✅ Vector Search for RAG                               |
+| `Colab + Python`              | Development environment                                                 | ✅ Experimentation and Prototyping                     |
+| `speech_recognition`          | Converts user voice into text                                           | ✅ Voice-to-Text Input (Integrated!)                   |
 
-This project uses the following technologies:
+---
 
-- **CrewAi**: Manages intelligent agents for task orchestration.
-- **Google Gemini**: Utilized for reasoning and language-based output.
-- **Serper API**: For real-time web search and data fetching.
-- **RAG (Retrieval-Augmented Generation)**: To summarize product reviews and provide insights.
-- **Streamlit**: For the interactive, easy-to-use frontend.
-- **Python**: Backend logic and integration with **CrewAi**.
-- **Jupyter Notebooks**: Data analysis and model testing.
+### 🔊 New Feature Added
+
+**Voice Input Powered by `speech_recognition`:**  
+Users can now *speak* their shopping queries instead of typing. The spoken query is transcribed and seamlessly passed to the input agent for further processing.
+
+---
 
 ---
 
