@@ -12,6 +12,7 @@ load_dotenv(".env")
 # Initialize LLM
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+
 gemini_llm = LLM(
     api_key=GOOGLE_API_KEY,
     model="gemini/gemini-2.0-flash-lite",
@@ -23,17 +24,17 @@ gemini_llm = LLM(
 def get_voice_input():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        st.write("Listening for voice input...")
+        st.write("🎙️ Listening for voice input... Please speak.")
         audio = recognizer.listen(source)
         try:
             text = recognizer.recognize_google(audio)
-            st.write("Recognized: " + text)
+            st.success("Recognized: " + text)
             return text
         except sr.UnknownValueError:
-            st.error("Could not understand audio")
+            st.error("❌ Could not understand audio.")
             return None
         except sr.RequestError as e:
-            st.error(f"Could not request results; {e}")
+            st.error(f"❌ Request failed: {e}")
             return None
 
 # Define Agents
@@ -45,23 +46,31 @@ input_collector = Agent(
     verbose=True
 )
 
+# Define  web search Tools
+# Tools for specific websites
 search_tool = SerperDevTool(api_key=SERPER_API_KEY)
-scrape_tool = ScrapeWebsiteTool(website_url='https://google.com/')
+
+scrape_google = ScrapeWebsiteTool(website_url='https://google.com/')
+scrape_amazon = ScrapeWebsiteTool(website_url='https://www.amazon.com/')
+scrape_daraz = ScrapeWebsiteTool(website_url='https://www.daraz.pk/')
+
 
 web_searcher = Agent(
     role="Web Search Specialist",
-    goal="Find product listings across multiple websites",
-    backstory="You are a master of online product search, capable of finding the best deals.",
-    tools=[search_tool, scrape_tool],
+    goal="Find product listings across Google, Amazon, and Daraz",
+    backstory="You are a skilled product search expert who knows how to extract valuable listings from multiple platforms.",
+    tools=[search_tool, scrape_google, scrape_amazon, scrape_daraz],
     llm=gemini_llm,
     allow_delegation=False,
     verbose=True
 )
 
+
+
 analyst = Agent(
-    role="Product Analyst",
-    goal="Analyze product listings for best prices and reviews",
-    backstory="You are skilled in comparing products to identify the best deals.",
+    role="Product Comparison Expert",
+    goal="Evaluate and compare product listings from different vendors to identify the best option based on quality, price, and reviews.",
+    backstory="You are a skilled product analysis expert. Your job is to compare various options available online, understand their features and pricing, and help users make informed decisions by providing pros, cons, and recommendations.",
     llm=gemini_llm,
     verbose=True
 )
@@ -72,7 +81,7 @@ review_tool = WebsiteSearchTool(
             provider="google",
             config=dict(
                 model="gemini/gemini-2.0-flash-lite",
-                api_key=GOOGLE_API_KEY
+                api_key="GOOGLE_API_KEY"
             )
         ),
         embedder=dict(
@@ -87,57 +96,92 @@ review_tool = WebsiteSearchTool(
 
 review_agent = Agent(
     role="Review Analyzer",
-    goal="Analyze reviews and summarize user sentiment.",
+    goal="Analyze reviews and summarize user sentiment for the top product recommended by the analysis task from the specified vendor.",
+    backstory="You analyze reviews from the selected vendor's website (Daraz, Amazon, AliExpress) for the chosen product to extract pros, cons, and overall user sentiment.",
     tools=[review_tool],
-    backstory="You extract pros and cons from product reviews using advanced RAG techniques.",
     llm=gemini_llm,
     verbose=True
 )
 
+# Define the final recommendation agent
 recommender = Agent(
     role="Shopping Recommendation Specialist",
     goal="Recommend the best product based on analysis and user preferences",
-    backstory="You provide tailored product recommendations with clear reasoning.",
+    backstory="You provide tailored product recommendations with clear reasoning, combining product details and customer reviews to help users make the best purchase decision.",
     llm=gemini_llm,
     verbose=True
 )
 
-# Define Tasks
+## Define Tasks
+filters = {
+    "min_rating": 4.0,
+    "brand": "Sony"
+}
+
+# Manually format the filters
+brand = filters["brand"] if filters["brand"] else "Any"
+
+description = (
+    f"Process the user input: '{{user_input}}'\n"
+    f"Use the following filters if applicable:\n"
+    f"- Minimum Rating: {filters['min_rating']}\n"
+    f"- Preferred Brand: {brand}\n"
+    "Generate a refined product search query based on these inputs."
+)
+
+# Now, use the formatted description in your Task
 input_task = Task(
-    description=(
-        "Process the user input '{user_input}' to generate a refined product search query.\n"
-        "Details should be based on this specific input."
-    ),
+    description=description,
     expected_output="A well-formed product search query based on the user's input.",
     agent=input_collector
 )
 
+
 search_task = Task(
-    description="Search online for the best matching products using the refined search query.",
-    expected_output="A list of product listings from various websites with key details.",
+    description="""
+        Search online for the best matching products using the refined search query.
+        Look for product listings across Google, Amazon, and Daraz. Use appropriate tools for each platform 
+        (e.g., Serper API for Google, scraping for Amazon and Daraz). Return a summarized list with key details 
+        like title, price, link, and brief description.
+    """,
+    expected_output="A list of product listings from Google, Amazon, and Daraz with key details.",
     agent=web_searcher,
     context=[input_task]
 )
 
 analysis_task = Task(
-    description="Analyze product listings to find best options based on price, ratings, and features.",
-    expected_output="A summary of top deals with pros and cons.",
+    description=(
+        "Analyze the provided product listings from different websites (Google, Amazon, Daraz). "
+        "Compare key features, prices, availability, and customer ratings. "
+        "Summarize the pros and cons of each option and select the best product(s) based on overall value. "
+        "Include the vendor name (Amazon, Daraz, or AliExpress) for the top recommended product."
+    ),
+    expected_output="A summary of pros and cons for each product, with a final recommended option, reasoning, and the vendor name.",
     agent=analyst,
     context=[search_task]
 )
 
+
 review_task = Task(
-    description="Analyze reviews and summarize key pros and cons for shortlisted products.",
-    expected_output="Summarized reviews in bullet points.",
+    description=(
+        "Using the top product recommendation and vendor from the analysis task, "
+        "summarize customer reviews for this product. Review feedback will include pros, cons, and sentiment analysis. "
+        "First, determine the correct website URL based on the vendor (Amazon, Daraz, or AliExpress). "
+        "Then use the WebsiteSearchTool to analyze reviews from that specific website."
+    ),
+    expected_output="A summarized list of pros, cons, and user sentiment for the selected product from the appropriate vendor's website.",
     agent=review_agent,
     context=[analysis_task]
 )
 
 recommendation_task = Task(
-    description="Recommend the best product to the user with a purchase link and reasoning.",
-    expected_output="A clear product recommendation with explanation and purchase link.",
+    description="Provide the best product recommendation based on features, customer reviews, and user preferences.",
+     expected_output="A concise product recommendation with summarized reasoning, including product features, price, pros/cons, and customer sentiment.",
     agent=recommender,
-    context=[review_task]
+    context=[
+        analysis_task,  # Output from Analysis Agent (Best Product)
+        review_task     # Output from Review Agent (Review Analysis)
+    ]
 )
 
 product_knowledge = StringKnowledgeSource(
@@ -158,6 +202,7 @@ shopping_crew = Crew(
         }
     }
 )
+
 
 
 # --- Streamlit App UI ---
@@ -182,7 +227,23 @@ with st.sidebar:
 
     # Manual chat reset
     if st.button("🔄 Reset Chat"):
-        st.session_state.messages = []
+        st.session_state.clear()
+        st.rerun()
+
+    # Filters Section
+    st.subheader("🔍 Filters (Optional)")
+
+    filters = {
+        "min_rating": st.slider("Minimum Rating", min_value=1.0, max_value=5.0, value=3.5),
+        "brand": st.text_input("Preferred Brand", value="")
+    }
+
+    st.session_state["filters"] = filters
+    st.write("Filters will be applied to the product search.")
+
+# Filters are now stored in session state and ready to be used.
+# --- Main Chat Area ---
+st.header("💬 Chat with ShopSmart.AI")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -213,15 +274,22 @@ if user_input:
 
     with st.chat_message("assistant"):
         with st.spinner("Searching and analyzing..."):
-            result = shopping_crew.kickoff(inputs={"user_input": user_input})
+            # When triggering the Crew to start processing with the inputs
+            result = shopping_crew.kickoff(inputs={
+                "user_input": user_input,
+                "filters": st.session_state.get("filters", {})
+            })
             response = result.raw
             st.markdown(response)
 
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 # Footer
-st.markdown("""<style>
-    .footer {
+import streamlit as st
+
+st.markdown("""
+    <style>
+    .custom-footer {
         position: fixed;
         bottom: 0;
         left: 0;
@@ -231,13 +299,18 @@ st.markdown("""<style>
         font-size: 14px;
         color: gray;
         background-color: white;
+        z-index: 100;
     }
-    .footer hr {
-        border: 1px solid #ddd;
+    .custom-footer hr {
+        border: none;
+        border-top: 1px solid #ddd;
         margin: 0;
     }
     </style>
-    <div class="footer">
+
+    <div class="custom-footer">
         <hr>
-        Powered by Streamlit | Developed by Sheema Masood<br>
-    </div>""", unsafe_allow_html=True)
+        Powered by Streamlit | Developed by Sheema Masood
+    </div>
+    """, unsafe_allow_html=True)
+
