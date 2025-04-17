@@ -1,9 +1,4 @@
 streamlit
-crewai[tools]>=0.100.0
-litellm
-python-dotenv
-gtts
-google-generativeai>=0.8.4
-SpeechRecognition
-chromadb==0.4.22
-duckdb
+crewai==0.114.0
+crewAI-tools
+python-dotenv 

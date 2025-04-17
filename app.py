@@ -1,6 +1,6 @@
 import streamlit as st
 from crewai import Agent, Crew, Process, Task, LLM
-from crewai_tools import SerperDevTool, ScrapeWebsiteTool, WebsiteSearchTool
+from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
 import os
 from dotenv import load_dotenv
@@ -75,34 +75,6 @@ analyst = Agent(
     verbose=True
 )
 
-review_tool = WebsiteSearchTool(
-    config=dict(
-        llm=dict(
-            provider="google",
-            config=dict(
-                model="gemini/gemini-2.0-flash-lite",
-                api_key="GOOGLE_API_KEY"
-            )
-        ),
-        embedder=dict(
-            provider="google",
-            config=dict(
-                model="models/embedding-001",
-                task_type="retrieval_document"
-            )
-        )
-    )
-)
-
-review_agent = Agent(
-    role="Review Analyzer",
-    goal="Analyze reviews and summarize user sentiment for the top product recommended by the analysis task from the specified vendor.",
-    backstory="You analyze reviews from the selected vendor's website (Daraz, Amazon, AliExpress) for the chosen product to extract pros, cons, and overall user sentiment.",
-    tools=[review_tool],
-    llm=gemini_llm,
-    verbose=True
-)
-
 # Define the final recommendation agent
 recommender = Agent(
     role="Shopping Recommendation Specialist",
@@ -162,26 +134,13 @@ analysis_task = Task(
 )
 
 
-review_task = Task(
-    description=(
-        "Using the top product recommendation and vendor from the analysis task, "
-        "summarize customer reviews for this product. Review feedback will include pros, cons, and sentiment analysis. "
-        "First, determine the correct website URL based on the vendor (Amazon, Daraz, or AliExpress). "
-        "Then use the WebsiteSearchTool to analyze reviews from that specific website."
-    ),
-    expected_output="A summarized list of pros, cons, and user sentiment for the selected product from the appropriate vendor's website.",
-    agent=review_agent,
-    context=[analysis_task]
-)
+
 
 recommendation_task = Task(
     description="Provide the best product recommendation based on features, customer reviews, and user preferences.",
      expected_output="A concise product recommendation with summarized reasoning, including product features, price, pros/cons, and customer sentiment.",
     agent=recommender,
-    context=[
-        analysis_task,  # Output from Analysis Agent (Best Product)
-        review_task     # Output from Review Agent (Review Analysis)
-    ]
+    context=[analysis_task]
 )
 
 product_knowledge = StringKnowledgeSource(
@@ -190,8 +149,8 @@ product_knowledge = StringKnowledgeSource(
 
 # Setup the Crew
 shopping_crew = Crew(
-    agents=[input_collector, web_searcher, analyst, review_agent, recommender],
-    tasks=[input_task, search_task, analysis_task, review_task, recommendation_task],
+    agents=[input_collector, web_searcher, analyst, recommender],
+    tasks=[input_task, search_task, analysis_task,  recommendation_task],
     verbose=True,
     process=Process.sequential,
     embedder={
