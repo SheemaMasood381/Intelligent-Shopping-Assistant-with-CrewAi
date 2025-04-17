@@ -1,0 +1,8 @@
+streamlit
+crewai-tools
+litellm
+python-dotenv
+google-generativeai>=0.8.4
+SpeechRecognition
+chromadb[duckdb]
+
