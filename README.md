@@ -1,7 +1,7 @@
 # 🛍️ ShopSmart.AI - Intelligent Shopping Assistant with CrewAi
 Welcome to the **ShopSmart.AI** repository! This project is an **Intelligent Shopping Assistant** designed to enhance your shopping experience using CrewAi, providing personalized product recommendations and efficient assistance.
 
-========
+------------
 
 ## Table of Contents
 
