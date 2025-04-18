@@ -131,7 +131,7 @@ description = (
     f"Use the following filters if applicable:\n"
     f"- Minimum Rating: {filters['min_rating']}\n"
     f"- Preferred Brand: {brand}\n"
-    "Generate a refined product search query based on these inputs."
+    "Generate a refined product search query based on these inputs.if the query is not clear or specific, ask the user for more details.\n"
 )
 
 # Now, use the formatted description in your Task
@@ -263,8 +263,10 @@ for msg in st.session_state.messages:
 
 # Function to handle input selection and processing
 def get_user_input():
-    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
+    if "audio_processed" not in st.session_state:
+        st.session_state.audio_processed = False
 
+    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
     user_input = None
 
     if input_type == "Text":
@@ -272,20 +274,16 @@ def get_user_input():
 
     elif input_type == "Voice":
         st.write("🎤 Please speak...")
+        audio_value = st.audio_input("you may ask me a question about  a product you want to buy")
 
-        # Using the st.audio_input() widget to record audio
-        audio_value = st.audio_input("you may ask me a question or continue shopping")
-
-        if audio_value:
-            # Send audio to Groq for processing (Assuming you have a Groq API endpoint for this)
-            user_input = transcribe_audio_with_groq(audio_value)  # Transcribe audio using Groq API
+        if audio_value and not st.session_state.audio_processed:
+            user_input = transcribe_audio_with_groq(audio_value)
             if user_input:
                 st.session_state.messages.append({"role": "user", "content": user_input})
-                st.rerun()  # Re-run to update the UI with the new message
+                st.session_state.audio_processed = True  # Mark audio as processed
+                st.rerun()
 
     return user_input
-
-
 
 # Get user input based on selection
 user_input = get_user_input()
