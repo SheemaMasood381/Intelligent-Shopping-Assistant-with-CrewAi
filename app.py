@@ -5,6 +5,8 @@ from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSourc
 import os
 from dotenv import load_dotenv
 import speech_recognition as sr
+from st_audiorec import st_audiorec
+import whisper
 
 # Load environment variables
 load_dotenv(".env")
@@ -12,6 +14,8 @@ load_dotenv(".env")
 # Initialize LLM
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 
 gemini_llm = LLM(
     api_key=GOOGLE_API_KEY,
@@ -20,22 +24,27 @@ gemini_llm = LLM(
     max_tokens=None
 )
 
-# Helper function for voice input
-def get_voice_input():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("🎙️ Listening for voice input... Please speak.")
-        audio = recognizer.listen(source)
-        try:
-            text = recognizer.recognize_google(audio)
-            st.success("Recognized: " + text)
-            return text
-        except sr.UnknownValueError:
-            st.error("❌ Could not understand audio.")
+# Initialize Whisper model for transcription
+model = whisper.load_model("base")
+client = Groq(api_key=GROQ_API_KEY)
+
+
+
+# Helper function for transcribing audio using Groq
+def transcribe_audio_with_groq(audio_data):
+    # Send the audio to Groq for transcription
+    try:
+        response = groq_client.transcribe(audio_data)
+        if response.status_code == 200:
+            transcription = response.json()["text"]
+            return transcription
+        else:
+            st.error("Error in transcribing audio with Groq: " + response.text)
             return None
-        except sr.RequestError as e:
-            st.error(f"❌ Request failed: {e}")
-            return None
+    except Exception as e:
+        st.error(f"An error occurred while transcribing: {str(e)}")
+        return None
+
 
 # Define Agents
 input_collector = Agent(
@@ -261,10 +270,12 @@ input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
 if input_type == "Text":
     user_input = st.chat_input("Ask me about a product or continue shopping...")
 else:
-    if st.button("🎤 Click to Speak"):
-        user_input = get_voice_input()
-    else:
-        user_input = None
+    uploaded_audio = st.file_uploader("🎤 Upload audio for voice input", type=["mp3", "wav", "ogg"])
+
+    if uploaded_audio:
+        st.audio(uploaded_audio, format='audio/wav')  # Show audio player
+        audio_data = uploaded_audio.read()  # Read audio data
+        user_input = transcribe_audio_with_groq(audio_data)  # Transcribe audio to text using Groq
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
