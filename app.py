@@ -73,15 +73,17 @@ def get_user_input():
     user_input = None
 
     if input_type == "Text":
-        user_input = st.text_input("Ask about a product or continue shopping...")
+        user_input = st.chat_input("Ask about a product or continue shopping...")
 
     elif input_type == "Voice":
-        if st.button("🎤 Speak Now"):
-            # Record and transcribe voice input
+        if st.button("🎤 Speak Again"):
             audio_data = record_audio()
             if audio_data:
-                st.audio(audio_data, format="audio/wav")  # Display audio after recording
+                st.audio(audio_data, format="audio/wav")
                 user_input = transcribe_audio_with_groq(audio_data)
+                if user_input:
+                    st.session_state.messages.append({"role": "user", "content": user_input})
+                    st.rerun()
 
     return user_input
 # Define Agents
