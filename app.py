@@ -292,43 +292,28 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- Sticky Bottom Input UI (Like ChatGPT) ---
-st.markdown("""
-    <style>
-    .bottom-input-container {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background-color: white;
-        padding: 10px 20px;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-        z-index: 9999;
-    }
-    </style>
-    <div class="bottom-input-container">
-""", unsafe_allow_html=True)
+# Input Mode Selector
+input_mode = st.radio(
+    "Choose input type:",
+    ("Text", "Voice")
+)
+st.session_state.input_mode = input_mode
 
-# Input Type Switch + Input Field (Text or Voice)
-col1, col2 = st.columns([1, 4])
+# Handle Text Input
+if st.session_state.input_mode == "Text":
+    user_input = st.chat_input("Type your query here...")
+    if user_input:
+        st.session_state.user_input = user_input
 
-with col1:
-    st.radio("Choose input Type", ["Text", "Voice"], key="input_mode", label_visibility="collapsed")
+# Handle Voice Input
+elif st.session_state.input_mode == "Voice":
+    audio_data = st.audio_input("Speak to Record your Query")
+    if audio_data:
+        st.info("Processing audio...")
+        transcribed_text = transcribe_audio_with_groq(audio_data)
+        if transcribed_text:
+            st.session_state.user_input = transcribed_text
 
-with col2:
-    if st.session_state.input_mode == "Text":
-        user_input = st.chat_input("Type your message here...")  # automatically bottom
-        if user_input:
-            st.session_state.user_input = user_input
-    else:
-        audio_data = st.audio_input("Speak your query")
-        if audio_data:
-            st.info("Transcribing...")
-            transcribed_text = transcribe_audio_with_groq(audio_data)
-            if transcribed_text:
-                st.session_state.user_input = transcribed_text
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Process after input is received ---
 if st.session_state.user_input:
