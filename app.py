@@ -27,23 +27,12 @@ gemini_llm = LLM(
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 
-
-# Helper function for transcribing audio using Groq
-from groq import Groq
-import streamlit as st
-
-# Initialize Groq client
-groq_client = Groq(api_key=GROQ_API_KEY)
-
-# Helper function to transcribe audio using Groq's Whisper
-
 # Function to transcribe audio with Groq Whisper API
 def transcribe_audio_with_groq(audio_data):
     try:
         translation = groq_client.audio.translations.create(
             file=("audio.wav", audio_data),  # Audio file data
             model="whisper-large-v3",        # Use Whisper model
-            language="en",                  # Set language to English
             response_format="json",         # Return in JSON format
             temperature=0.0                 # Control output randomness
         )
@@ -52,40 +41,7 @@ def transcribe_audio_with_groq(audio_data):
         st.error(f"Error during transcription: {e}")
         return None
 
-# Function to handle voice recognition
-def record_audio():
-    recognizer = sr.Recognizer()
 
-    with sr.Microphone() as source:
-        st.write("🎤 Please speak now...")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    # Saving the audio as a temporary WAV file
-    audio_data = audio.get_wav_data()
-
-    return audio_data
-
-# Function to handle input selection and processing
-def get_user_input():
-    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
-
-    user_input = None
-
-    if input_type == "Text":
-        user_input = st.chat_input("Ask about a product or continue shopping...")
-
-    elif input_type == "Voice":
-        if st.button("🎤 Speak Again"):
-            audio_data = record_audio()
-            if audio_data:
-                st.audio(audio_data, format="audio/wav")
-                user_input = transcribe_audio_with_groq(audio_data)
-                if user_input:
-                    st.session_state.messages.append({"role": "user", "content": user_input})
-                    st.rerun()
-
-    return user_input
 # Define Agents
 input_collector = Agent(
     role="User Input Collector",
@@ -303,6 +259,31 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+
+
+# Function to handle input selection and processing
+def get_user_input():
+    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
+
+    user_input = None
+
+    if input_type == "Text":
+        user_input = st.chat_input("Ask about a product or continue shopping...")
+
+    elif input_type == "Voice":
+        st.write("🎤 Please speak...")
+
+        # Using the st.audio_input() widget to record audio
+        audio_value = st.audio_input("you may ask me a question or continue shopping")
+
+        if audio_value:
+            # Send audio to Groq for processing (Assuming you have a Groq API endpoint for this)
+            user_input = transcribe_audio_with_groq(audio_value)  # Transcribe audio using Groq API
+            if user_input:
+                st.session_state.messages.append({"role": "user", "content": user_input})
+                st.rerun()  # Re-run to update the UI with the new message
+
+    return user_input
 
 
 
