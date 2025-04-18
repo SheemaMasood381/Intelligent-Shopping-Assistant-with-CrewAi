@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import speech_recognition as sr
 from st_audiorec import st_audiorec
 import whisper
+from groq import Groq
 
 # Load environment variables
 load_dotenv(".env")
