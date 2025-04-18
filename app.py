@@ -26,27 +26,66 @@ gemini_llm = LLM(
 )
 
 # Initialize Whisper model for transcription
-model = whisper.load_model("base")
-client = Groq(api_key=GROQ_API_KEY)
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 
 
 # Helper function for transcribing audio using Groq
+from groq import Groq
+import streamlit as st
+
+# Initialize Groq client
+groq_client = Groq(api_key=GROQ_API_KEY)
+
+# Helper function to transcribe audio using Groq's Whisper
+
+# Function to transcribe audio with Groq Whisper API
 def transcribe_audio_with_groq(audio_data):
-    # Send the audio to Groq for transcription
     try:
-        response = groq_client.transcribe(audio_data)
-        if response.status_code == 200:
-            transcription = response.json()["text"]
-            return transcription
-        else:
-            st.error("Error in transcribing audio with Groq: " + response.text)
-            return None
+        translation = groq_client.audio.translations.create(
+            file=("audio.wav", audio_data),  # Audio file data
+            model="whisper-large-v3",        # Use Whisper model
+            language="en",                  # Set language to English
+            response_format="json",         # Return in JSON format
+            temperature=0.0                 # Control output randomness
+        )
+        return translation.text  # Return the transcribed text
     except Exception as e:
-        st.error(f"An error occurred while transcribing: {str(e)}")
+        st.error(f"Error during transcription: {e}")
         return None
 
+# Function to handle voice recognition
+def record_audio():
+    recognizer = sr.Recognizer()
 
+    with sr.Microphone() as source:
+        st.write("🎤 Please speak now...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+
+    # Saving the audio as a temporary WAV file
+    audio_data = audio.get_wav_data()
+
+    return audio_data
+
+# Function to handle input selection and processing
+def get_user_input():
+    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
+
+    user_input = None
+
+    if input_type == "Text":
+        user_input = st.text_input("Ask about a product or continue shopping...")
+
+    elif input_type == "Voice":
+        if st.button("🎤 Speak Now"):
+            # Record and transcribe voice input
+            audio_data = record_audio()
+            if audio_data:
+                st.audio(audio_data, format="audio/wav")  # Display audio after recording
+                user_input = transcribe_audio_with_groq(audio_data)
+
+    return user_input
 # Define Agents
 input_collector = Agent(
     role="User Input Collector",
@@ -264,37 +303,27 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Input type selection
-input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
 
-# Capture input
-if input_type == "Text":
-    user_input = st.chat_input("Ask me about a product or continue shopping...")
-else:
-    uploaded_audio = st.file_uploader("🎤 Upload audio for voice input", type=["mp3", "wav", "ogg"])
 
-    if uploaded_audio:
-        st.audio(uploaded_audio, format='audio/wav')  # Show audio player
-        audio_data = uploaded_audio.read()  # Read audio data
-        user_input = transcribe_audio_with_groq(audio_data)  # Transcribe audio to text using Groq
+
+# Get user input based on selection
+user_input = get_user_input()
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
-    
+
     with st.chat_message("user"):
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
         with st.spinner("Searching and analyzing..."):
-            # When triggering the Crew to start processing with the inputs
-            result = shopping_crew.kickoff(inputs={
-                "user_input": user_input,
-                "filters": st.session_state.get("filters", {})
-            })
+            # Integrating CrewAI (replace with your actual CrewAI logic here)
+            result = shopping_crew.kickoff(inputs={"user_input": user_input})
             response = result.raw
             st.markdown(response)
 
         st.session_state.messages.append({"role": "assistant", "content": response})
+
 
 # Footer
 

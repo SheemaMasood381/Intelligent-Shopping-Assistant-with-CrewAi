@@ -5,5 +5,5 @@ python-dotenv
 google-generativeai>=0.8.4
 SpeechRecognition
 crewai
-groq 
+Groq 
 gtts 
