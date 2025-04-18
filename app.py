@@ -276,78 +276,82 @@ def transcribe_audio_with_groq(audio_data):
         st.error(f"Error during transcription: {e}")
         return None
 
-# Initialize session state for chat messages
+
+# --- Session state setup ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []  # Initialize chat history
+    st.session_state.messages = []
 
 if "input_mode" not in st.session_state:
-    st.session_state.input_mode = None  # Track input type (Text/Voice)
+    st.session_state.input_mode = "Text"
 
 if "user_input" not in st.session_state:
-    st.session_state.user_input = None  # Store the user's input
+    st.session_state.user_input = ""
 
+# --- Display previous messages ---
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- Sticky Bottom Input UI (Like ChatGPT) ---
+st.markdown("""
+    <style>
+    .bottom-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 10px 20px;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        z-index: 9999;
+    }
+    </style>
+    <div class="bottom-input-container">
+""", unsafe_allow_html=True)
 
+# Input Type Switch + Input Field (Text or Voice)
+col1, col2 = st.columns([1, 4])
 
-# Function to handle user input (text or voice)
-def get_user_input():
-    """
-    Handles both text and voice input, and returns the processed input as text.
-    """
-    
-    # Provide the user with an option to choose input type
-    input_mode = st.radio("Choose input type:", ("Text", "Voice"), horizontal=True)
+with col1:
+    st.radio("Choose input Type", ["Text", "Voice"], key="input_mode", label_visibility="collapsed")
 
-    # Handle Text Input
-    if input_mode == "Text":
-        user_input = st.chat_input("Type your query here...")
+with col2:
+    if st.session_state.input_mode == "Text":
+        user_input = st.chat_input("Type your message here...")  # automatically bottom
         if user_input:
-            st.session_state.user_input = user_input  # Store text input in session state
-            st.session_state.input_mode = "Text"  # Track input type as text
-
-    # Handle Voice Input
-    elif input_mode == "Voice":
-        audio_data = st.audio_input("Speak to Record your Query")
-        if audio_data:  # If audio is recorded
-            st.info("Processing audio...")
-            transcribed_text = transcribe_audio_with_groq(audio_data)  # Transcribe audio
+            st.session_state.user_input = user_input
+    else:
+        audio_data = st.audio_input("Speak your query")
+        if audio_data:
+            st.info("Transcribing...")
+            transcribed_text = transcribe_audio_with_groq(audio_data)
             if transcribed_text:
-                st.session_state.user_input = transcribed_text  # Store transcribed text
-                st.session_state.input_mode = "Voice"  # Track input type as voice
+                st.session_state.user_input = transcribed_text
 
-    # Return the unified user input (always as text)
-    return st.session_state.user_input
+st.markdown("</div>", unsafe_allow_html=True)
 
-# Get the user input (text or transcribed voice)
-user_input = get_user_input()
+# --- Process after input is received ---
+if st.session_state.user_input:
+    user_msg = st.session_state.user_input
+    st.session_state.messages.append({"role": "user", "content": user_msg})
 
-# Process the user input if available
-if user_input:
-    # Add the user's input to the chat history
-    st.session_state.messages.append({"role": "user", "content": user_input})
-
-    # Display the user's input in the chat
     with st.chat_message("user"):
-        st.markdown(user_input)
+        st.markdown(user_msg)
 
-    # Simulate the agent's response 
     with st.chat_message("assistant"):
-        with st.spinner("Searching and analyzing..."):
-            # Integrating CrewAI (replace with your actual CrewAI logic here)
-            result = shopping_crew.kickoff(inputs={"user_input": user_input})
-            response = result.raw
-            st.markdown(response)
+        with st.spinner("Thinking..."):
+            result = shopping_crew.kickoff(inputs={"user_input": user_msg})
+            reply = result.raw
+            st.markdown(reply)
 
-        # Add the agent's response to the chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
 
-# Reset `user_input` and `input_mode` after processing
-    st.session_state.user_input = None
-    st.session_state.input_mode = None
+        # Add the assistant's response to the chat history
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+
+
+    # Clear input after processingstreamlit
+    st.session_state.user_input = ""
+
 
 # Footer
 
