@@ -20,7 +20,7 @@ gemini_llm = LLM(
     api_key=GOOGLE_API_KEY,
     model="gemini/gemini-2.0-flash-lite",
     temperature=0,
-    max_tokens=None
+    max_tokens=1000
 )
 
 # Initialize Whisper model for transcription
@@ -131,7 +131,7 @@ description = (
     f"Use the following filters if applicable:\n"
     f"- Minimum Rating: {filters['min_rating']}\n"
     f"- Preferred Brand: {brand}\n"
-    "Generate a refined product search query based on these inputs.if the query is not clear or specific, ask the user for more details.\n"
+    "generate a refined query by Gathering and clarifying user requirements for product search from text or voice input.if the query is not clear or specific, ask the user for more details.\n"
 )
 
 # Now, use the formatted description in your Task
@@ -212,7 +212,18 @@ shopping_crew = Crew(
 
 # --- Streamlit App UI ---
 st.set_page_config(page_title="ShopSmart.AI", page_icon="🛒")
-st.title("🛍️ ShopSmart.AI – Voice/Text Shopping Assistant using Gen AI")
+
+
+
+# Title and Logo in same row using columns
+col1, col2 = st.columns([5, 2]) 
+with col1:
+    st.markdown("""
+                <h1 style='margin-bottom: 0;'>🛍️ ShopSmart.AI</h1>
+                <p style='margin-top: 0; font-size: 40px;'>Shop Smarter - Live Better</p>
+                """, unsafe_allow_html=True)
+with col2:
+    st.image("tlogo.png", use_container_width=True)
 
 # --- Sidebar ---
 with st.sidebar:
@@ -248,52 +259,82 @@ with st.sidebar:
 
 # Filters are now stored in session state and ready to be used.
 # --- Main Chat Area ---
-st.header("💬 Chat with ShopSmart.AI")
-
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display chat history
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-
+st.markdown("<h5>💬 Just ask — your AI Shopping Crew will find, analyze, and deliver the best deals!</h5>", unsafe_allow_html=True)
 
 # Function to handle input selection and processing
+# Transcription function (uses Groq Whisper API)
+def transcribe_audio_with_groq(audio_data):
+    try:
+        translation = groq_client.audio.translations.create(
+            file=("audio.wav", audio_data),  # Audio file data
+            model="whisper-large-v3",        # Use Whisper model
+            response_format="json",         # Return in JSON format
+            temperature=0.0                 # Control output randomness
+        )
+        return translation.text  # Return the transcribed text
+    except Exception as e:
+        st.error(f"Error during transcription: {e}")
+        return None
+
+# Initialize session state for chat messages
+if "messages" not in st.session_state:
+    st.session_state.messages = []  # Initialize chat history
+
+if "input_mode" not in st.session_state:
+    st.session_state.input_mode = None  # Track input type (Text/Voice)
+
+if "user_input" not in st.session_state:
+    st.session_state.user_input = None  # Store the user's input
+
+
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+
+# Function to handle user input (text or voice)
 def get_user_input():
-    if "audio_processed" not in st.session_state:
-        st.session_state.audio_processed = False
+    """
+    Handles both text and voice input, and returns the processed input as text.
+    """
+    
+    # Provide the user with an option to choose input type
+    input_mode = st.radio("Choose input type:", ("Text", "Voice"), horizontal=True)
 
-    input_type = st.radio("Choose input type", ("Text", "Voice"), horizontal=True)
-    user_input = None
+    # Handle Text Input
+    if input_mode == "Text":
+        user_input = st.chat_input("Type your query here...")
+        if user_input:
+            st.session_state.user_input = user_input  # Store text input in session state
+            st.session_state.input_mode = "Text"  # Track input type as text
 
-    if input_type == "Text":
-        user_input = st.chat_input("Ask about a product or continue shopping...")
+    # Handle Voice Input
+    elif input_mode == "Voice":
+        audio_data = st.audio_input("Speak to Record your Query")
+        if audio_data:  # If audio is recorded
+            st.info("Processing audio...")
+            transcribed_text = transcribe_audio_with_groq(audio_data)  # Transcribe audio
+            if transcribed_text:
+                st.session_state.user_input = transcribed_text  # Store transcribed text
+                st.session_state.input_mode = "Voice"  # Track input type as voice
 
-    elif input_type == "Voice":
-        st.write("🎤 Please speak...")
-        audio_value = st.audio_input("you may ask me a question about  a product you want to buy")
+    # Return the unified user input (always as text)
+    return st.session_state.user_input
 
-        if audio_value and not st.session_state.audio_processed:
-            user_input = transcribe_audio_with_groq(audio_value)
-            if user_input:
-                st.session_state.messages.append({"role": "user", "content": user_input})
-                st.session_state.audio_processed = True  # Mark audio as processed
-                st.rerun()
-
-    return user_input
-
-# Get user input based on selection
+# Get the user input (text or transcribed voice)
 user_input = get_user_input()
 
+# Process the user input if available
 if user_input:
+    # Add the user's input to the chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
 
+    # Display the user's input in the chat
     with st.chat_message("user"):
         st.markdown(user_input)
 
+    # Simulate the agent's response 
     with st.chat_message("assistant"):
         with st.spinner("Searching and analyzing..."):
             # Integrating CrewAI (replace with your actual CrewAI logic here)
@@ -301,8 +342,12 @@ if user_input:
             response = result.raw
             st.markdown(response)
 
+        # Add the agent's response to the chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
+# Reset `user_input` and `input_mode` after processing
+    st.session_state.user_input = None
+    st.session_state.input_mode = None
 
 # Footer
 
